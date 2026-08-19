@@ -144,7 +144,7 @@ func ControlButtons(mode string) *gotdbot.ReplyMarkupInlineKeyboard {
 	stopBtn := cb("⏹️ Durdur", "play_stop", gotdbot.ButtonStyleDanger{})
 	pauseBtn := cb("⏸️ Durakla", "play_pause", gotdbot.ButtonStylePrimary{})
 	resumeBtn := cb("▶️ Devam", "play_resume", gotdbot.ButtonStylePrimary{})
-	downloadBtn := cb("📥 MP3 İndir", "play_download", gotdbot.ButtonStylePrimary{})
+	downloadBtn := cb("📥 İndir", "play_download", gotdbot.ButtonStylePrimary{})
 	autoplayBtn := cb("❤️‍🔥 Otomatik Çal", "play_toggle_autoplay", gotdbot.ButtonStylePrimary{})
 	addToPlaylistBtn := cb("⭐ Çalma Listesine Ekle", "play_add_to_list", gotdbot.ButtonStylePrimary{})
 	closeBtn := cb("❤️‍🩹 Kapat ❤️‍🩹", "vcplay_close", gotdbot.ButtonStyleDanger{})

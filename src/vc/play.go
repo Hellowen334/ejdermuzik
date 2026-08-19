@@ -117,7 +117,7 @@ func (c *TelegramCalls) playMedia(bot *td.Client, chatID int64, filePath string,
 		return err
 	}
 
-	if db.Instance.GetLoggerStatus() {
+	if config.LoggerId != 0 {
 		go sendLogger(bot, chatID, cache.ChatCache.GetPlayingTrack(chatID))
 	}
 

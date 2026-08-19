@@ -36,28 +36,16 @@ func DownloadCachedTrack(cached *utils.CachedTrack, bot *td.Client) (string, err
 		cancel()
 
 		if err == nil && fileID != "" {
+			slog.Info("[MongoDB Cache HIT] Track found in MongoDB cache", "trackID", cached.TrackID, "fileID", fileID)
 			localPath, err := downloadTelegramFileID(fileID, bot)
 			if err == nil && localPath != "" {
-				slog.Info("[Cache] Track retrieved instantly from Telegram file_id cache", "trackID", cached.TrackID, "fileID", fileID)
+				slog.Info("[MongoDB Cache SUCCESS] Track retrieved instantly from Telegram cloud file_id", "trackID", cached.TrackID, "fileID", fileID)
 				return localPath, nil
+			} else {
+				slog.Warn("[MongoDB Cache EXPIRED] Telegram file_id expired or download failed, falling back to API", "error", err)
 			}
-
-			// Fallback: If file_id expired, attempt to fetch message from Logger channel
-			if msgID != 0 && config.LoggerId != 0 {
-				msg, err := bot.GetMessage(config.LoggerId, int64(msgID))
-				if err == nil && msg != nil {
-					file, err := msg.Download(bot, 1, 0, 0, true)
-					if err == nil && file != nil && file.Local != nil && file.Local.Path != "" {
-						if file.Remote != nil && file.Remote.Id != "" {
-							ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-							_ = db.Instance.SaveCachedFileID(ctx, cached.TrackID, cached.IsVideo, file.Remote.Id, msgID)
-							cancel()
-						}
-						slog.Info("[Cache] Track retrieved from Logger channel message", "trackID", cached.TrackID, "msgID", msgID)
-						return file.Local.Path, nil
-					}
-				}
-			}
+		} else {
+			slog.Info("[MongoDB Cache MISS] Track not found in MongoDB cache", "trackID", cached.TrackID)
 		}
 	}
 
