@@ -17,38 +17,9 @@ import (
 
 var startTime = time.Now()
 
-// setBotCommands automatically registers commands with Telegram BotFather menu on startup.
-func setBotCommands(c *gotdbot.Client) {
-	commands := []*gotdbot.BotCommand{
-		{Command: "oynat", Description: "🎵 Müzik oynatır (veya /play)"},
-		{Command: "voynat", Description: "🎥 Video oynatır (veya /vplay)"},
-		{Command: "duraklat", Description: "⏸️ Müziği duraklatır (veya /pause)"},
-		{Command: "devam", Description: "▶️ Müziği devam ettirir (veya /resume)"},
-		{Command: "atla", Description: "⏭️ Sonraki şarkıya geçer (veya /skip)"},
-		{Command: "durdur", Description: "⏹️ Müziği durdurur (veya /stop)"},
-		{Command: "sira", Description: "📜 Şarkı sırasını gösterir (veya /queue)"},
-		{Command: "ayarlar", Description: "⚙️ Bot ayarlarını açar (veya /settings)"},
-		{Command: "baslat", Description: "🤖 Botu başlatır (veya /start)"},
-		{Command: "yardim", Description: "❓ Yardım menüsünü gösterir (veya /help)"},
-		{Command: "ping", Description: "⚡ Bot durumunu gösterir (veya /ping)"},
-	}
-
-	go func() {
-		time.Sleep(2 * time.Second)
-		_, err := c.SetBotCommands(&gotdbot.BotCommandScopeDefault{}, "", commands)
-		if err != nil {
-			c.Logger.Warn("Failed to set bot commands", "error", err)
-		} else {
-			c.Logger.Info("Bot commands registered to Telegram successfully")
-		}
-	}()
-}
-
 // LoadModules loads all the handlers.
 // It takes a telegram gotdbot.Client as input.
 func LoadModules(c *gotdbot.Client) {
-	setBotCommands(c)
-
 	c.OnCommand("reload", reloadAdminCacheHandler)
 	c.OnCommand("yenile", reloadAdminCacheHandler)
 

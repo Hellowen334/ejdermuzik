@@ -284,15 +284,11 @@ func editableUsername(chat *gotdbot.Supergroup) string {
 	return ""
 }
 
-func sendJoinLog(client *gotdbot.Client, chatID int64, supergroup *gotdbot.Supergroup) {
+func sendJoinLog(client *gotdbot.Client, chatID int64, _ *gotdbot.Supergroup) {
 	title := "Bilinmiyor"
-	if supergroup != nil && supergroup.Title != "" {
-		title = supergroup.Title
-	} else {
-		chat, err := client.GetChat(chatID)
-		if err == nil && chat != nil && chat.Title != "" {
-			title = chat.Title
-		}
+	chat, err := client.GetChat(chatID)
+	if err == nil && chat != nil && chat.Title != "" {
+		title = chat.Title
 	}
 
 	text := fmt.Sprintf(
