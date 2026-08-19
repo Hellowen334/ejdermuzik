@@ -111,6 +111,7 @@ func (db *Database) ctx() (context.Context, context.CancelFunc) {
 // ----------------- CACHED FILES -----------------
 
 // GetCachedFileID retrieves a file ID and message ID for a given track ID and format (audio/video).
+// It seamlessly checks both new format (_id: trackID:audio) and legacy formats (_id: trackID, track_id: trackID).
 func (db *Database) GetCachedFileID(ctx context.Context, trackID string, isVideo bool) (string, int32, error) {
 	var result struct {
 		FileID    string `bson:"file_id"`
@@ -120,14 +121,45 @@ func (db *Database) GetCachedFileID(ctx context.Context, trackID string, isVideo
 	if isVideo {
 		format = "video"
 	}
+
+	// 1. Check new format (_id: "trackID:audio")
 	err := db.fileCacheDB.FindOne(ctx, bson.M{"_id": trackID + ":" + format}).Decode(&result)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return "", 0, nil
+	if err == nil && result.FileID != "" {
+		return result.FileID, result.MessageID, nil
 	}
-	if err != nil {
-		return "", 0, err
+
+	// 2. Check legacy format (_id: "trackID")
+	err = db.fileCacheDB.FindOne(ctx, bson.M{"_id": trackID}).Decode(&result)
+	if err == nil && result.FileID != "" {
+		return result.FileID, result.MessageID, nil
 	}
-	return result.FileID, result.MessageID, nil
+
+	// 3. Check legacy format (field query: track_id / id / vid_id)
+	err = db.fileCacheDB.FindOne(ctx, bson.M{"$or": []bson.M{
+		{"track_id": trackID},
+		{"id": trackID},
+		{"vid_id": trackID},
+	}}).Decode(&result)
+	if err == nil && result.FileID != "" {
+		return result.FileID, result.MessageID, nil
+	}
+
+	// 4. Fallback: check "cache" collection if present from legacy bots
+	cacheColl := db.DB.Collection("cache")
+	if cacheColl != nil {
+		err = cacheColl.FindOne(ctx, bson.M{"$or": []bson.M{
+			{"_id": trackID},
+			{"_id": trackID + ":" + format},
+			{"vidid": trackID},
+			{"videoid": trackID},
+			{"track_id": trackID},
+		}}).Decode(&result)
+		if err == nil && result.FileID != "" {
+			return result.FileID, result.MessageID, nil
+		}
+	}
+
+	return "", 0, nil
 }
 
 // SaveCachedFileID saves a file ID and message ID for a given track ID and format.
@@ -136,12 +168,12 @@ func (db *Database) SaveCachedFileID(ctx context.Context, trackID string, isVide
 	if isVideo {
 		format = "video"
 	}
-	
+
 	setDoc := bson.M{"file_id": fileID}
 	if messageID != 0 {
 		setDoc["message_id"] = messageID
 	}
-	
+
 	_, err := db.fileCacheDB.UpdateOne(
 		ctx,
 		bson.M{"_id": trackID + ":" + format},
