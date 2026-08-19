@@ -23,7 +23,7 @@ func handleVoiceChatMessage(c *td.Client, update *td.UpdateNewMessage) error {
 
 	if m.IsGroup() {
 		text := fmt.Sprintf(
-			"This chat (%d) is not a supergroup yet.\n<b>⚠️ Please convert this chat to a supergroup and add me as admin.</b>\n\nIf you don't know how to convert, use this guide:\n🔗 https://te.legra.ph/How-to-Convert-a-Group-to-a-Supergroup-01-02\n\nIf you have any questions, join our support group:",
+			"<blockquote>⚠️ <b>Bu grup (%d) henüz bir süpergrup değil.</b>\nLütfen bu grubu bir süpergruba dönüştürün ve beni yönetici yapın.</blockquote>",
 			chatID,
 		)
 
@@ -47,14 +47,14 @@ func handleVoiceChatMessage(c *td.Client, update *td.UpdateNewMessage) error {
 	switch m.Content.(type) {
 	case *td.MessageVideoChatStarted:
 		cache.ChatCache.ClearChat(chatID)
-		message = "🎙️ Video chat started!\nUse /play <song name> to play music."
+		message = "<blockquote>🎙️ <b>Sesli sohbet başlatıldı!</b>\nMüzik dinlemek için <code>/play [şarkı adı]</code> yazın.</blockquote>"
 	case *td.MessageVideoChatEnded:
 		cache.ChatCache.ClearChat(chatID)
-		message = "🎧 Video chat ended!\nAll queues cleared."
+		message = "<blockquote>🎧 <b>Sesli sohbet sona erdi!</b>\nTüm sıralar temizlendi.</blockquote>"
 	default:
 		return nil
 	}
 
-	_, _ = c.SendTextMessage(chatID, message, nil)
+	_, _ = c.SendTextMessage(chatID, message, &td.SendTextMessageOpts{ParseMode: "HTML"})
 	return td.EndGroups
 }
