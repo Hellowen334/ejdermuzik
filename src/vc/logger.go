@@ -59,7 +59,7 @@ func sendLogger(client *td.Client, chatID int64, song *utils.CachedTrack) {
 	)
 
 	formattedCaption := &td.FormattedText{Text: caption}
-	parsedText, parseErr := client.ParseTextEntities(caption, &td.TextParseModeHTML{}, nil)
+	parsedText, parseErr := client.ParseTextEntities(&td.TextParseModeHTML{}, caption)
 	if parseErr == nil && parsedText != nil {
 		formattedCaption = parsedText
 	}
