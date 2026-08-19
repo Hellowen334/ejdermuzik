@@ -28,6 +28,9 @@ func sendLogger(client *td.Client, chatID int64, song *utils.CachedTrack) {
 		return
 	}
 
+	// Ensure logger channel is loaded into TDLib memory
+	_, _ = client.GetChat(config.LoggerId)
+
 	chatTitle := fmt.Sprintf("%d", chatID)
 	chat, err := client.GetChat(chatID)
 	if err == nil && chat != nil && chat.Title != "" {

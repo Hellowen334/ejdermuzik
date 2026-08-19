@@ -127,7 +127,7 @@ func playCallbackHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error {
 			return nil
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 
 		var fileID string
@@ -135,6 +135,13 @@ func playCallbackHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error {
 			fileID, _, _ = db.Instance.GetCachedFileID(ctx, currentTrack.TrackID, false)
 		}
 
+		caption := fmt.Sprintf("🎵 <b><a href='%s'>%s</a></b>\n\n📥 <i>İndirme tamamlandı! İyi dinlemeler.</i>", html.EscapeString(currentTrack.URL), html.EscapeString(currentTrack.Name))
+		formattedCaption := &td.FormattedText{Text: caption}
+		if parsedText, parseErr := c.ParseTextEntities(&td.TextParseModeHTML{}, caption); parseErr == nil && parsedText != nil {
+			formattedCaption = parsedText
+		}
+
+		// Try 1: Send via Telegram cloud file_id if available
 		if fileID != "" {
 			_, err := c.SendMessage(cb.SenderUserId, &td.InputMessageAudio{
 				Audio: &td.InputAudio{
@@ -142,7 +149,44 @@ func playCallbackHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error {
 					Title:    currentTrack.Name,
 					Duration: int32(currentTrack.Duration),
 				},
-				Caption: &td.FormattedText{Text: fmt.Sprintf("🎵 <b><a href='%s'>%s</a></b>\n\n📥 <i>İndirme tamamlandı! İyi dinlemeler.</i>", html.EscapeString(currentTrack.URL), html.EscapeString(currentTrack.Name))},
+				Caption: formattedCaption,
+			}, nil)
+
+			if err == nil {
+				_ = cb.Answer(c, 0, true, "📥 Şarkı özel mesajınıza (DM) MP3 olarak gönderildi!", "")
+				return nil
+			}
+		}
+
+		// Try 2: Send via local file path if file exists on server
+		if currentTrack.FilePath != "" {
+			if _, statErr := os.Stat(currentTrack.FilePath); statErr == nil {
+				_, err := c.SendMessage(cb.SenderUserId, &td.InputMessageAudio{
+					Audio: &td.InputAudio{
+						Audio:    &td.InputFileLocal{Path: currentTrack.FilePath},
+						Title:    currentTrack.Name,
+						Duration: int32(currentTrack.Duration),
+					},
+					Caption: formattedCaption,
+				}, nil)
+
+				if err == nil {
+					_ = cb.Answer(c, 0, true, "📥 Şarkı özel mesajınıza (DM) MP3 olarak gönderildi!", "")
+					return nil
+				}
+			}
+		}
+
+		// Try 3: Download track locally and send
+		localPath, err := dl.DownloadCachedTrack(currentTrack, c)
+		if err == nil && localPath != "" {
+			_, err = c.SendMessage(cb.SenderUserId, &td.InputMessageAudio{
+				Audio: &td.InputAudio{
+					Audio:    &td.InputFileLocal{Path: localPath},
+					Title:    currentTrack.Name,
+					Duration: int32(currentTrack.Duration),
+				},
+				Caption: formattedCaption,
 			}, nil)
 
 			if err == nil {
@@ -157,7 +201,7 @@ func playCallbackHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error {
 			botUsername = botUser.Usernames.EditableUsername
 		}
 
-		_ = cb.Answer(c, 0, true, fmt.Sprintf("📥 Şarkıyı DM'den almak için lütfen önce botla özel sohbet başlatın (@%s).", botUsername), "")
+		_ = cb.Answer(c, 0, true, fmt.Sprintf("📥 Şarkıyı DM'den alabilmek için lütfen önce botla özel sohbet başlatın: @%s", botUsername), "")
 		return nil
 
 	case strings.Contains(data, "play_add_to_list"):
