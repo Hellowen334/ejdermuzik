@@ -14,6 +14,7 @@ import (
 	"ashokshau/tgmusic/src/utils"
 	"context"
 	"fmt"
+	"html"
 	"os"
 	"time"
 
@@ -27,15 +28,24 @@ func sendLogger(client *td.Client, chatID int64, song *utils.CachedTrack) {
 		return
 	}
 
+	chatTitle := fmt.Sprintf("%d", chatID)
+	chat, err := client.GetChat(chatID)
+	if err == nil && chat != nil && chat.Title != "" {
+		chatTitle = chat.Title
+	}
+
 	caption := fmt.Sprintf(
-		"<b>A song is playing</b> in <code>%d</code>\n\n‣ <b>Title:</b> <a href='%s'>%s</a>\n‣ <b>Duration:</b> %s\n‣ <b>Requested by:</b> %s\n‣ <b>Platform:</b> %s\n‣ <b>Is Video:</b> %t",
-		chatID,
+		"🎶 <b><a href='%s'>%s</a></b>\n\n"+
+			"📌 <b>Grup :</b> %s [<code>%d</code>]\n"+
+			"👤 <b>İsteyen :</b> %s\n"+
+			"🕐 <b>Süre :</b> %s dakika\n\n"+
+			"📌 <i>Sistem tarafından daha hızlı oynatılmak için önbelleğe alındı.</i>",
 		song.URL,
-		song.Name,
+		html.EscapeString(song.Name),
+		html.EscapeString(chatTitle),
+		chatID,
+		html.EscapeString(song.User),
 		utils.SecToMin(song.Duration),
-		song.User,
-		song.Platform,
-		song.IsVideo,
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -55,7 +65,6 @@ func sendLogger(client *td.Client, chatID int64, song *utils.CachedTrack) {
 
 	var (
 		msg *td.Message
-		err error
 	)
 
 	formattedCaption := &td.FormattedText{Text: caption}

@@ -284,8 +284,23 @@ func editableUsername(chat *gotdbot.Supergroup) string {
 	return ""
 }
 
-func sendJoinLog(client *gotdbot.Client, chatID int64, _ *gotdbot.Supergroup) {
-	text := fmt.Sprintf("<b>🤖 Bot Joined a New Chat</b>\n📌 <b>Chat ID:</b> <code>%d</code>", chatID)
+func sendJoinLog(client *gotdbot.Client, chatID int64, supergroup *gotdbot.Supergroup) {
+	title := "Bilinmiyor"
+	if supergroup != nil && supergroup.Title != "" {
+		title = supergroup.Title
+	} else {
+		chat, err := client.GetChat(chatID)
+		if err == nil && chat != nil && chat.Title != "" {
+			title = chat.Title
+		}
+	}
+
+	text := fmt.Sprintf(
+		"🤖 <b>Bot Yeni Bir Gruba Eklendi!</b>\n\n"+
+			"🏷️ <b>Grup Adı:</b> %s\n"+
+			"📌 <b>Grup ID:</b> <code>%d</code>",
+		title, chatID,
+	)
 	if _, err := client.SendTextMessage(config.LoggerId, text, &gotdbot.SendTextMessageOpts{
 		ParseMode: "HTML",
 	}); err != nil {
