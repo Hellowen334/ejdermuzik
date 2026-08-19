@@ -35,7 +35,7 @@ func (c *TelegramCalls) downloadAndPrepareSong(bot *td.Client, song *utils.Cache
 	dlPath, err := dl.DownloadCachedTrack(song, bot)
 	song.FilePath = dlPath
 	if err != nil || song.FilePath == "" {
-		_, _ = reply.EditText(bot, "⚠️ Download failed. Skipping track...", nil)
+		_, _ = reply.EditText(bot, "<blockquote>⚠️ İndirme başarısız oldu. Şarkı atlanıyor...</blockquote>", &td.EditTextMessageOpts{ParseMode: "HTML"})
 		return err
 	}
 
@@ -75,11 +75,28 @@ func (c *TelegramCalls) handleAutoplay(bot *td.Client, chatID int64, lastSong *u
 		return c.handleNoSong(bot, chatID)
 	}
 
-	var candidates []utils.MusicTrack
+	var (
+		differentArtistCandidates []utils.MusicTrack
+		allCandidates             []utils.MusicTrack
+	)
+
+	lastChannel := strings.ToLower(strings.TrimSpace(lastSong.Channel))
+
 	for _, t := range tracks.Results {
-		if t.Id != lastSong.TrackID {
-			candidates = append(candidates, t)
+		if t.Id == lastSong.TrackID {
+			continue
 		}
+		allCandidates = append(allCandidates, t)
+
+		candidateChannel := strings.ToLower(strings.TrimSpace(t.Channel))
+		if lastChannel == "" || candidateChannel != lastChannel {
+			differentArtistCandidates = append(differentArtistCandidates, t)
+		}
+	}
+
+	candidates := differentArtistCandidates
+	if len(candidates) == 0 {
+		candidates = allCandidates
 	}
 
 	if len(candidates) == 0 {
@@ -95,7 +112,7 @@ func (c *TelegramCalls) handleAutoplay(bot *td.Client, chatID int64, lastSong *u
 	}
 
 	saveCache := &utils.CachedTrack{
-		URL: nextTrack.Url, Name: nextTrack.Title, User: "Autoplay",
+		URL: nextTrack.Url, Name: nextTrack.Title, User: "🤖 Otomatik Çalma",
 		Thumbnail: nextTrack.Thumbnail, TrackID: nextTrack.Id, Duration: nextTrack.Duration,
 		Channel: nextTrack.Channel, Views: nextTrack.Views, IsVideo: lastSong.IsVideo, Platform: utils.YouTube,
 	}
@@ -108,7 +125,7 @@ func (c *TelegramCalls) handleAutoplay(bot *td.Client, chatID int64, lastSong *u
 // and sending a notification to the chat.
 func (c *TelegramCalls) handleNoSong(bot *td.Client, chatID int64) error {
 	_ = c.Stop(chatID, false)
-	_, _ = bot.SendTextMessage(chatID, "🎵 Queue finished. Add more songs with /play.", nil)
+	_, _ = bot.SendTextMessage(chatID, "<blockquote>🎵 <b>Sıra tamamlandı.</b>\nYeni şarkı eklemek için <code>/play [şarkı adı]</code> yazabilirsiniz.</blockquote>", &td.SendTextMessageOpts{ParseMode: "HTML"})
 	return nil
 }
 

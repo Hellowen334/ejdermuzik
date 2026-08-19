@@ -31,18 +31,18 @@ func queueHandler(c *td.Client, m *td.Message) error {
 
 	chat, err := c.GetChat(chatID)
 	if err != nil {
-		_, _ = m.ReplyText(c, "Error fetching chat information.", nil)
+		_, _ = m.ReplyText(c, "<blockquote>⚠️ Sohbet bilgisi alınamadı.</blockquote>", &td.SendTextMessageOpts{ParseMode: "HTML"})
 		return nil
 	}
 
 	queue := cache.ChatCache.GetQueue(chatID)
 	if len(queue) == 0 {
-		_, _ = m.ReplyText(c, "The queue is empty.", nil)
+		_, _ = m.ReplyText(c, "<blockquote>🎵 <b>Oynatma sırası boş.</b></blockquote>", &td.SendTextMessageOpts{ParseMode: "HTML"})
 		return nil
 	}
 
 	if !cache.ChatCache.IsActive(chatID) {
-		_, _ = m.ReplyText(c, "The bot is not streaming in the video chat.", nil)
+		_, _ = m.ReplyText(c, "<blockquote>⚠️ Bot sesli sohbette yayın yapmıyor.</blockquote>", &td.SendTextMessageOpts{ParseMode: "HTML"})
 		return nil
 	}
 
@@ -50,28 +50,28 @@ func queueHandler(c *td.Client, m *td.Message) error {
 	playedTime, _ := vc.Calls.PlayedTime(chatID)
 
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("<b>Queue for %s</b>\n\n", chat.Title))
+	b.WriteString(fmt.Sprintf("<blockquote>📜 <b>%s Oynatma Sırası</b>\n\n", chat.Title))
 
-	b.WriteString("<b>Now Playing:</b>\n")
-	b.WriteString(fmt.Sprintf("• <b>Title:</b> <code>%s</code>\n", truncate(current.Name, 45)))
-	b.WriteString(fmt.Sprintf("• <b>By:</b> %s\n", current.User))
-	b.WriteString(fmt.Sprintf("• <b>Duration:</b> %s min\n", utils.SecToMin(current.Duration)))
-	b.WriteString("• <b>Loop:</b> ")
+	b.WriteString("▶️ <b>Şimdi Çalıyor:</b>\n")
+	b.WriteString(fmt.Sprintf("• <b>Şarkı:</b> <code>%s</code>\n", truncate(current.Name, 45)))
+	b.WriteString(fmt.Sprintf("• <b>İsteyen:</b> %s\n", current.User))
+	b.WriteString(fmt.Sprintf("• <b>Süre:</b> %s dk\n", utils.SecToMin(current.Duration)))
+	b.WriteString("• <b>Döngü:</b> ")
 	if current.Loop > 0 {
-		b.WriteString("On\n")
+		b.WriteString("Açık ✅\n")
 	} else {
-		b.WriteString("Off\n")
+		b.WriteString("Kapalı ❌\n")
 	}
-	b.WriteString("• <b>Progress:</b> ")
+	b.WriteString("• <b>İlerleme:</b> ")
 	if playedTime > 0 && playedTime < math.MaxInt {
 		b.WriteString(utils.SecToMin(int(playedTime)))
 	} else {
 		b.WriteString("0:00")
 	}
-	b.WriteString(" min\n")
+	b.WriteString(" dk\n")
 
 	if len(queue) > 1 {
-		b.WriteString(fmt.Sprintf("\n<b>Next Up (%d):</b>\n", len(queue)-1))
+		b.WriteString(fmt.Sprintf("\n⏭️ <b>Sıradakiler (%d):</b>\n", len(queue)-1))
 
 		for i, song := range queue[1:] {
 			if i >= 14 {
@@ -82,15 +82,15 @@ func queueHandler(c *td.Client, m *td.Message) error {
 			b.WriteString(truncate(song.Name, 45))
 			b.WriteString("</code> | ")
 			b.WriteString(utils.SecToMin(song.Duration))
-			b.WriteString(" min\n")
+			b.WriteString(" dk\n")
 		}
 
 		if len(queue) > 15 {
-			b.WriteString(fmt.Sprintf("...and %d more tracks\n", len(queue)-15))
+			b.WriteString(fmt.Sprintf("...ve %d parça daha\n", len(queue)-15))
 		}
 	}
 
-	b.WriteString(fmt.Sprintf("\n<b>Total:</b> %d tracks", len(queue)))
+	b.WriteString(fmt.Sprintf("\n📊 <b>Toplam:</b> %d parça</blockquote>", len(queue)))
 
 	text := b.String()
 	if len(text) > 4096 {
@@ -100,7 +100,7 @@ func queueHandler(c *td.Client, m *td.Message) error {
 			progress = utils.SecToMin(int(playedTime))
 		}
 		sb.WriteString(fmt.Sprintf(
-			"<b>Queue for %s</b>\n\n<b>Now Playing:</b>\n• <code>%s</code>\n• %s/%s min\n\n<b>Total:</b> %d tracks",
+			"<blockquote>📜 <b>%s Oynatma Sırası</b>\n\n▶️ <b>Şimdi Çalıyor:</b>\n• <code>%s</code>\n• %s/%s dk\n\n📊 <b>Toplam:</b> %d parça</blockquote>",
 			chat.Title,
 			truncate(current.Name, 45),
 			progress,

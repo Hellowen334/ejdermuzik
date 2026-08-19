@@ -28,19 +28,19 @@ func removeHandler(c *td.Client, m *td.Message) error {
 	chatID := m.ChatId
 
 	if !cache.ChatCache.IsActive(chatID) {
-		_, _ = m.ReplyText(c, "The bot is not streaming in the video chat.", nil)
+		_, _ = m.ReplyText(c, "<blockquote>⚠️ Bot sesli sohbette yayın yapmıyor.</blockquote>", &td.SendTextMessageOpts{ParseMode: "HTML"})
 		return nil
 	}
 
 	queue := cache.ChatCache.GetQueue(chatID)
 	if len(queue) == 0 {
-		_, _ = m.ReplyText(c, "The queue is currently empty.", nil)
+		_, _ = m.ReplyText(c, "<blockquote>🎵 Oynatma sırası boş.</blockquote>", &td.SendTextMessageOpts{ParseMode: "HTML"})
 		return nil
 	}
 
 	args := Args(m)
 	if args == "" {
-		_, _ = m.ReplyText(c, "<b>Usage:</b> <code>/remove [track number or range]</code>\n\nExamples:\n- <code>/remove 1</code> (removes track #1)\n- <code>/remove 1-5</code> (removes tracks 1 to 5)\n- <code>/remove 1,3,5</code> (removes tracks 1, 3, and 5)", replyOpts)
+		_, _ = m.ReplyText(c, "<blockquote><b>Kullanım:</b> <code>/remove [şarkı numarası veya aralık]</code>\n\nÖrnekler:\n- <code>/remove 1</code> (#1 numaralı şarkıyı siler)\n- <code>/remove 1-5</code> (1 ile 5 arasındaki şarkıları siler)\n- <code>/remove 1,3,5</code> (1, 3 ve 5. şarkıları siler)</blockquote>", replyOpts)
 		return nil
 	}
 
@@ -77,7 +77,7 @@ func removeHandler(c *td.Client, m *td.Message) error {
 	}
 
 	if len(tracksToRemove) == 0 {
-		_, _ = m.ReplyText(c, "Please provide a valid track number or range.", nil)
+		_, _ = m.ReplyText(c, "<blockquote>⚠️ Lütfen geçerli bir şarkı numarası veya aralık girin.</blockquote>", replyOpts)
 		return nil
 	}
 
@@ -91,7 +91,7 @@ func removeHandler(c *td.Client, m *td.Message) error {
 	}
 
 	if len(sortedTracks) == 0 {
-		_, _ = m.ReplyText(c, "No valid tracks to remove.", nil)
+		_, _ = m.ReplyText(c, "<blockquote>⚠️ Çıkarılacak geçerli şarkı bulunamadı.</blockquote>", replyOpts)
 		return nil
 	}
 
@@ -105,9 +105,9 @@ func removeHandler(c *td.Client, m *td.Message) error {
 
 	var err error
 	if len(sortedTracks) == 1 {
-		_, err = m.ReplyText(c, fmt.Sprintf("Track #%d has been removed by %s.", sortedTracks[0], firstName(c, m)), replyOpts)
+		_, err = m.ReplyText(c, fmt.Sprintf("<blockquote>🗑️ <b>#%d numaralı şarkı %s tarafından sıradan çıkarıldı.</b></blockquote>", sortedTracks[0], firstName(c, m)), replyOpts)
 	} else {
-		_, err = m.ReplyText(c, fmt.Sprintf("%d tracks have been removed by %s.", len(sortedTracks), firstName(c, m)), replyOpts)
+		_, err = m.ReplyText(c, fmt.Sprintf("<blockquote>🗑️ <b>%d parça %s tarafından sıradan çıkarıldı.</b></blockquote>", len(sortedTracks), firstName(c, m)), replyOpts)
 	}
 
 	return err

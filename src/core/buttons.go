@@ -142,8 +142,9 @@ func BackHelpMenuKeyboard() *gotdbot.ReplyMarkupInlineKeyboard {
 func ControlButtons(mode string) *gotdbot.ReplyMarkupInlineKeyboard {
 	skipBtn := cb("⏭️ Atla", "play_skip", gotdbot.ButtonStylePrimary{})
 	stopBtn := cb("⏹️ Durdur", "play_stop", gotdbot.ButtonStyleDanger{})
-	pauseBtn := cb("⏸️ Duraklat", "play_pause", gotdbot.ButtonStylePrimary{})
-	resumeBtn := cb("▶️ Devam Et", "play_resume", gotdbot.ButtonStylePrimary{})
+	pauseBtn := cb("⏸️ Durakla", "play_pause", gotdbot.ButtonStylePrimary{})
+	resumeBtn := cb("▶️ Devam", "play_resume", gotdbot.ButtonStylePrimary{})
+	downloadBtn := cb("📥 MP3 İndir", "play_download", gotdbot.ButtonStylePrimary{})
 	autoplayBtn := cb("❤️‍🔥 Otomatik Çal", "play_toggle_autoplay", gotdbot.ButtonStylePrimary{})
 	addToPlaylistBtn := cb("⭐ Çalma Listesine Ekle", "play_add_to_list", gotdbot.ButtonStylePrimary{})
 	closeBtn := cb("❤️‍🩹 Kapat ❤️‍🩹", "vcplay_close", gotdbot.ButtonStyleDanger{})
@@ -153,7 +154,7 @@ func ControlButtons(mode string) *gotdbot.ReplyMarkupInlineKeyboard {
 		return &gotdbot.ReplyMarkupInlineKeyboard{
 			Rows: [][]gotdbot.InlineKeyboardButton{
 				{pauseBtn, stopBtn, skipBtn},
-				{autoplayBtn},
+				{downloadBtn, autoplayBtn},
 				{addToPlaylistBtn},
 				{closeBtn},
 			},
@@ -163,7 +164,7 @@ func ControlButtons(mode string) *gotdbot.ReplyMarkupInlineKeyboard {
 		return &gotdbot.ReplyMarkupInlineKeyboard{
 			Rows: [][]gotdbot.InlineKeyboardButton{
 				{resumeBtn, stopBtn, skipBtn},
-				{autoplayBtn},
+				{downloadBtn, autoplayBtn},
 				{addToPlaylistBtn},
 				{closeBtn},
 			},
@@ -173,7 +174,7 @@ func ControlButtons(mode string) *gotdbot.ReplyMarkupInlineKeyboard {
 		return &gotdbot.ReplyMarkupInlineKeyboard{
 			Rows: [][]gotdbot.InlineKeyboardButton{
 				{pauseBtn, stopBtn, skipBtn},
-				{autoplayBtn},
+				{downloadBtn, autoplayBtn},
 				{addToPlaylistBtn},
 				{closeBtn},
 			},

@@ -23,12 +23,12 @@ func autoplayHandler(c *td.Client, m *td.Message) error {
 	chatID := m.ChatId
 
 	if cache.ChatCache.GetPlayingTrack(chatID) == nil {
-		_, err := m.ReplyText(c, "Bot is not streaming in the video chat.", nil)
+		_, err := m.ReplyText(c, "<blockquote>⚠️ Sesli sohbette çalan bir yayın yok.</blockquote>", &td.SendTextMessageOpts{ParseMode: "HTML"})
 		return err
 	}
 
 	state := cache.ChatCache.GetAutoplay(chatID)
-	text := "<b>Autoplay Control</b>\n\nWhen autoplay is enabled, the bot will automatically play recommended songs from YouTube when the queue is empty."
+	text := "<blockquote>❤️‍🔥 <b>Otomatik Çalma Yönetimi</b>\n\nOtomatik çalma aktif olduğunda, sıra bittiğinde bot YouTube önerilerinden yeni parçaları otomatik olarak oynatır.</blockquote>"
 	button := autoplayButton(state)
 
 	_, err := m.ReplyText(c, text, &td.SendTextMessageOpts{
@@ -45,7 +45,7 @@ func autoplayCallbackHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error 
 
 	chatID := cb.ChatId
 	if cache.ChatCache.GetPlayingTrack(chatID) == nil {
-		_ = cb.Answer(c, 0, true, "Bot is not streaming in the video chat.", "")
+		_ = cb.Answer(c, 0, true, "Sesli sohbette çalan bir yayın yok.", "")
 		return nil
 	}
 
@@ -53,7 +53,7 @@ func autoplayCallbackHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error 
 	newState := !state
 	cache.ChatCache.SetAutoplay(chatID, newState)
 
-	text := "<b>Autoplay Control</b>\n\nWhen autoplay is enabled, the bot will automatically play recommended songs from YouTube when the queue is empty."
+	text := "<blockquote>❤️‍🔥 <b>Otomatik Çalma Yönetimi</b>\n\nOtomatik çalma aktif olduğunda, sıra bittiğinde bot YouTube önerilerinden yeni parçaları otomatik olarak oynatır.</blockquote>"
 	button := autoplayButton(newState)
 
 	_, err := cb.EditMessageText(c, text, &td.EditTextMessageOpts{
@@ -66,11 +66,11 @@ func autoplayCallbackHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error 
 
 	var status string
 	if newState {
-		status = "enabled"
+		status = "açıldı ✅"
 	} else {
-		status = "disabled"
+		status = "kapatıldı ❌"
 	}
-	_ = cb.Answer(c, 0, false, fmt.Sprintf("Autoplay has been %s.", status), "")
+	_ = cb.Answer(c, 0, false, fmt.Sprintf("Otomatik Çalma %s.", status), "")
 
 	return nil
 }
@@ -78,9 +78,9 @@ func autoplayCallbackHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error 
 func autoplayButton(state bool) *td.ReplyMarkupInlineKeyboard {
 	var text string
 	if state {
-		text = "Autoplay: ON | ✅"
+		text = "❤️‍🔥 Otomatik Çalma: AÇIK | ✅"
 	} else {
-		text = "Autoplay: OFF | ❌"
+		text = "❤️‍🔥 Otomatik Çalma: KAPALI | ❌"
 	}
 
 	return &td.ReplyMarkupInlineKeyboard{
@@ -91,6 +91,7 @@ func autoplayButton(state bool) *td.ReplyMarkupInlineKeyboard {
 					Type: &td.InlineKeyboardButtonTypeCallback{
 						Data: []byte("autoplay_toggle"),
 					},
+					Style: td.ButtonStylePrimary{},
 				},
 			},
 		},

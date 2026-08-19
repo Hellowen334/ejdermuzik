@@ -9,15 +9,17 @@
 package handlers
 
 import (
-	"ashokshau/tgmusic/src/utils"
+	"context"
 	"fmt"
 	"html"
 	"log/slog"
 	"strings"
+	"time"
 
 	"ashokshau/tgmusic/src/core"
 	"ashokshau/tgmusic/src/core/cache"
 	"ashokshau/tgmusic/src/core/db"
+	"ashokshau/tgmusic/src/utils"
 	"ashokshau/tgmusic/src/vc"
 
 	td "github.com/AshokShau/gotdbot"
@@ -32,20 +34,20 @@ func playCallbackHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error {
 	chatID := cb.ChatId
 	user, err := c.GetUser(cb.SenderUserId)
 	if err != nil {
-		user = &td.User{FirstName: "Unknown", Id: cb.SenderUserId}
+		user = &td.User{FirstName: "Kullanıcı", Id: cb.SenderUserId}
 	}
 
 	if !cache.ChatCache.IsActive(chatID) {
-		text := "There is no active playback."
-		_ = cb.Answer(c, 0, false, text, "")
+		text := "<blockquote>⚠️ Aktif bir yayın bulunmuyor.</blockquote>"
+		_ = cb.Answer(c, 0, false, "Aktif bir yayın bulunmuyor.", "")
 		_, _ = cb.EditMessageText(c, text, &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons(""), ParseMode: "HTML", DisableWebPagePreview: true})
 		return nil
 	}
 
 	currentTrack := cache.ChatCache.GetPlayingTrack(chatID)
 	if currentTrack == nil {
-		_ = cb.Answer(c, 0, false, "There is no active playback.", "")
-		_, _ = cb.EditMessageText(c, "There is no active playback.", &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons(""), ParseMode: "HTML", DisableWebPagePreview: true})
+		_ = cb.Answer(c, 0, false, "Aktif bir yayın bulunmuyor.", "")
+		_, _ = cb.EditMessageText(c, "<blockquote>⚠️ Aktif bir yayın bulunmuyor.</blockquote>", &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons(""), ParseMode: "HTML", DisableWebPagePreview: true})
 		return nil
 	}
 
@@ -53,7 +55,7 @@ func playCallbackHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error {
 		escURL := html.EscapeString(currentTrack.URL)
 		escName := html.EscapeString(currentTrack.Name)
 		escUser := html.EscapeString(currentTrack.User)
-		return fmt.Sprintf("%s <b>%s</b>\n\n<b>Track:</b> <a href='%s'>%s</a>\n<b>Duration:</b> %s\n<b>Requested by:</b> %s",
+		return fmt.Sprintf("%s <b>%s</b>\n\n<b>Parça:</b> <a href='%s'>%s</a>\n<b>Süre:</b> %s\n<b>İsteyen:</b> %s",
 			emoji, status,
 			escURL, escName,
 			utils.SecToMin(currentTrack.Duration),
@@ -64,82 +66,112 @@ func playCallbackHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error {
 	switch {
 	case strings.Contains(data, "play_skip"):
 		if err := vc.Calls.PlayNext(c, chatID); err != nil {
-			_ = cb.Answer(c, 0, false, "Unable to skip the current track.", "")
-			_, _ = cb.EditMessageText(c, "Unable to skip the current track.", &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons(""), ParseMode: "HTML", DisableWebPagePreview: true})
+			_ = cb.Answer(c, 0, false, "Şarkı atlanamadı.", "")
+			_, _ = cb.EditMessageText(c, "<blockquote>⚠️ Şarkı atlanamadı.</blockquote>", &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons(""), ParseMode: "HTML", DisableWebPagePreview: true})
 			return nil
 		}
-		_ = cb.Answer(c, 0, false, "Track skipped.", "")
+		_ = cb.Answer(c, 0, false, "Şarkı atlandı ⏭️", "")
 		_ = c.DeleteMessages(chatID, []int64{cb.MessageId}, &td.DeleteMessagesOpts{Revoke: true})
 		return nil
 
 	case strings.Contains(data, "play_stop"):
 		if err := vc.Calls.Stop(chatID, false); err != nil {
-			_ = cb.Answer(c, 0, false, "Unable to stop playback.", "")
-			_, _ = cb.EditMessageText(c, "Unable to stop playback.", &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons(""), ParseMode: "HTML", DisableWebPagePreview: true})
+			_ = cb.Answer(c, 0, false, "Oynatma durdurulamadı.", "")
+			_, _ = cb.EditMessageText(c, "<blockquote>⚠️ Oynatma durdurulamadı.</blockquote>", &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons(""), ParseMode: "HTML", DisableWebPagePreview: true})
 			return nil
 		}
 
-		msg := fmt.Sprintf("<b>Playback stopped.</b>\nRequested by: %s", html.EscapeString(user.FirstName))
-		_ = cb.Answer(c, 0, false, "Playback stopped.", "")
+		msg := fmt.Sprintf("<blockquote>⏹️ <b>Oynatma durduruldu.</b>\nDurduran: %s</blockquote>", html.EscapeString(user.FirstName))
+		_ = cb.Answer(c, 0, false, "Oynatma durduruldu.", "")
 		_, err := cb.EditMessageText(c, msg, &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons(""), ParseMode: "HTML", DisableWebPagePreview: true})
 		return err
 
 	case strings.Contains(data, "play_pause"):
 		if _, err = vc.Calls.Pause(chatID); err != nil {
-			_ = cb.Answer(c, 0, false, "Unable to pause playback.", "")
-			_, _ = cb.EditMessageText(c, "Unable to pause playback.", &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons(""), ParseMode: "HTML", DisableWebPagePreview: true})
+			_ = cb.Answer(c, 0, false, "Oynatma duraklatılamadı.", "")
+			_, _ = cb.EditMessageText(c, "<blockquote>⚠️ Oynatma duraklatılamadı.</blockquote>", &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons(""), ParseMode: "HTML", DisableWebPagePreview: true})
 			return nil
 		}
-		_ = cb.Answer(c, 0, false, "Playback paused.", "")
-		text := buildTrackMessage("Paused", "⏸") + fmt.Sprintf("\n\nPaused by %s", html.EscapeString(user.FirstName))
+		_ = cb.Answer(c, 0, false, "Oynatma duraklatıldı ⏸️", "")
+		text := buildTrackMessage("Duraklatıldı", "⏸") + fmt.Sprintf("\n\nDuraklatan: %s", html.EscapeString(user.FirstName))
 		_, _ = cb.EditMessageText(c, text, &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons("pause"), ParseMode: "HTML", DisableWebPagePreview: true})
 		return nil
 
 	case strings.Contains(data, "play_resume"):
 		if _, err := vc.Calls.Resume(chatID); err != nil {
-			_ = cb.Answer(c, 0, false, "Unable to resume playback.", "")
-			_, _ = cb.EditMessageText(c, "Unable to resume playback.", &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons("pause"), ParseMode: "HTML", DisableWebPagePreview: true})
+			_ = cb.Answer(c, 0, false, "Oynatma devam ettirilemedi.", "")
+			_, _ = cb.EditMessageText(c, "<blockquote>⚠️ Oynatma devam ettirilemedi.</blockquote>", &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons("pause"), ParseMode: "HTML", DisableWebPagePreview: true})
 			return nil
 		}
-		_ = cb.Answer(c, 0, false, "Playback resumed.", "")
-		text := buildTrackMessage("Now Playing", "▶") + fmt.Sprintf("\n\nResumed by %s", html.EscapeString(user.FirstName))
+		_ = cb.Answer(c, 0, false, "Oynatma devam ediyor ▶️", "")
+		text := buildTrackMessage("Şimdi Oynatılıyor", "▶") + fmt.Sprintf("\n\nDevam ettiren: %s", html.EscapeString(user.FirstName))
 		_, _ = cb.EditMessageText(c, text, &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons("resume"), ParseMode: "HTML", DisableWebPagePreview: true})
 		return nil
 
-	case strings.Contains(data, "play_mute"):
-		if _, err := vc.Calls.Mute(chatID); err != nil {
-			_ = cb.Answer(c, 0, false, "Unable to mute playback.", "")
-			_, _ = cb.EditMessageText(c, "Unable to mute playback.", &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons("mute"), ParseMode: "HTML", DisableWebPagePreview: true})
-			return nil
+	case strings.Contains(data, "play_toggle_autoplay"):
+		state := cache.ChatCache.GetAutoplay(chatID)
+		newState := !state
+		cache.ChatCache.SetAutoplay(chatID, newState)
+		var statusText string
+		if newState {
+			statusText = "Otomatik Çalma AÇILDI ✅"
+		} else {
+			statusText = "Otomatik Çalma KAPATILDI ❌"
 		}
-		_ = cb.Answer(c, 0, false, "Playback muted.", "")
-		text := buildTrackMessage("Muted", "🔇") + fmt.Sprintf("\n\nMuted by %s", html.EscapeString(user.FirstName))
-		_, _ = cb.EditMessageText(c, text, &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons("mute"), ParseMode: "HTML", DisableWebPagePreview: true})
+		_ = cb.Answer(c, 0, true, statusText, "")
 		return nil
 
-	case strings.Contains(data, "play_unmute"):
-		if _, err := vc.Calls.Unmute(chatID); err != nil {
-			_ = cb.Answer(c, 0, false, "Unable to unmute playback.", "")
-			_, _ = cb.EditMessageText(c, "Unable to unmute playback.", &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons("unmute"), ParseMode: "HTML"})
+	case strings.Contains(data, "play_download"):
+		if currentTrack == nil {
+			_ = cb.Answer(c, 0, true, "❌ Şu an çalan bir parça yok.", "")
 			return nil
 		}
-		_ = cb.Answer(c, 0, false, "Playback unmuted.", "")
-		text := buildTrackMessage("Now Playing", "▶") + fmt.Sprintf("\n\nUnmuted by %s", html.EscapeString(user.FirstName))
-		_, _ = cb.EditMessageText(c, text, &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons("unmute"), DisableWebPagePreview: true})
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		var fileID string
+		if currentTrack.TrackID != "" && db.Instance != nil {
+			fileID, _, _ = db.Instance.GetCachedFileID(ctx, currentTrack.TrackID, false)
+		}
+
+		if fileID != "" {
+			_, err := c.SendMessage(cb.SenderUserId, &td.InputMessageAudio{
+				Audio: &td.InputAudio{
+					Audio:    &td.InputFileRemote{Id: fileID},
+					Title:    currentTrack.Name,
+					Duration: int32(currentTrack.Duration),
+				},
+				Caption: &td.FormattedText{Text: fmt.Sprintf("🎵 <b><a href='%s'>%s</a></b>\n\n📥 <i>İndirme tamamlandı! İyi dinlemeler.</i>", html.EscapeString(currentTrack.URL), html.EscapeString(currentTrack.Name))},
+			}, nil)
+
+			if err == nil {
+				_ = cb.Answer(c, 0, true, "📥 Şarkı özel mesajınıza (DM) MP3 olarak gönderildi!", "")
+				return nil
+			}
+		}
+
+		botUser, _ := c.GetMe()
+		botUsername := "bot"
+		if botUser != nil && botUser.Usernames != nil {
+			botUsername = botUser.Usernames.EditableUsername
+		}
+
+		_ = cb.Answer(c, 0, true, fmt.Sprintf("📥 Şarkıyı DM'den almak için lütfen önce botla özel sohbet başlatın (@%s).", botUsername), "")
 		return nil
 
 	case strings.Contains(data, "play_add_to_list"):
 		playlists, err := db.Instance.GetUserPlaylists(cb.SenderUserId)
 		if err != nil {
-			_ = cb.Answer(c, 0, false, "Unable to fetch playlists.", "")
+			_ = cb.Answer(c, 0, true, "❌ Çalma listeleri alınamadı.", "")
 			return nil
 		}
 
 		var playlistID string
 		if len(playlists) == 0 {
-			playlistID, err = db.Instance.CreatePlaylist("My Playlist (TgMusic)", cb.SenderUserId)
+			playlistID, err = db.Instance.CreatePlaylist("Favorilerim", cb.SenderUserId)
 			if err != nil {
-				_ = cb.Answer(c, 0, false, "Unable to create playlist.", "")
+				_ = cb.Answer(c, 0, true, "❌ Çalma listesi oluşturulamadı.", "")
 				return nil
 			}
 		} else {
@@ -156,35 +188,38 @@ func playCallbackHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error {
 
 		err = db.Instance.AddSongToPlaylist(playlistID, song)
 		if err != nil {
-			_ = cb.Answer(c, 0, false, "Unable to add track to playlist.", "")
+			_ = cb.Answer(c, 0, true, "❌ Parça listeye eklenemedi.", "")
 			return nil
 		}
 
 		playlist, err := db.Instance.GetPlaylist(playlistID)
-		if err != nil {
-			_ = cb.Answer(c, 0, false, "Playlist not found.", "")
-			return nil
+		pName := "Çalma Listem"
+		if err == nil && playlist != nil {
+			pName = playlist.Name
 		}
 
-		_ = cb.Answer(c, 0, false, fmt.Sprintf("Track \"%s\" added to playlist \"%s\".", song.Name, playlist.Name), "")
+		notifyMsg := fmt.Sprintf("<blockquote>⭐ <b>Parça Çalma Listesine Eklendi!</b>\n\n🎵 <b>Şarkı:</b> %s\n📁 <b>Liste:</b> %s</blockquote>", html.EscapeString(song.Name), html.EscapeString(pName))
+		_, _ = c.SendTextMessage(chatID, notifyMsg, &td.SendTextMessageOpts{ParseMode: "HTML"})
+
+		_ = cb.Answer(c, 0, true, fmt.Sprintf("✅ \"%s\" parçası '%s' listenize eklendi!", song.Name, pName), "")
 		return nil
 
 	case strings.HasPrefix(data, "play_now_"):
 		trackID := strings.TrimPrefix(data, "play_now_")
 		if ok := cache.ChatCache.MoveTrackToFront(chatID, trackID); !ok {
-			_ = cb.Answer(c, 0, false, "Track not found in queue.", "")
+			_ = cb.Answer(c, 0, false, "Parça sırada bulunamadı.", "")
 			return nil
 		}
 		if err := vc.Calls.PlayNext(c, chatID); err != nil {
-			_ = cb.Answer(c, 0, false, "Unable to play the track.", "")
+			_ = cb.Answer(c, 0, false, "Parça oynatılamadı.", "")
 			return nil
 		}
-		_ = cb.Answer(c, 0, false, "Playing now.", "")
+		_ = cb.Answer(c, 0, false, "Şimdi oynatılıyor ▶️", "")
 		_ = c.DeleteMessages(chatID, []int64{cb.MessageId}, &td.DeleteMessagesOpts{Revoke: true})
 		return nil
 	}
 
-	text := buildTrackMessage("Now Playing", "▶")
+	text := buildTrackMessage("Şimdi Oynatılıyor", "▶")
 	_, _ = cb.EditMessageText(c, text, &td.EditTextMessageOpts{ReplyMarkup: core.ControlButtons("resume"), ParseMode: "HTML", DisableWebPagePreview: true})
 	return nil
 }
@@ -193,7 +228,7 @@ func vcPlayHandler(c *td.Client, cb *td.UpdateNewCallbackQuery) error {
 	data := cb.DataString()
 
 	if strings.Contains(data, "vcplay_close") {
-		_ = cb.Answer(c, 0, false, "Closing panel.", "")
+		_ = cb.Answer(c, 0, false, "Panel kapatıldı.", "")
 		_ = c.DeleteMessages(cb.ChatId, []int64{cb.MessageId}, &td.DeleteMessagesOpts{Revoke: true})
 		return nil
 	}
