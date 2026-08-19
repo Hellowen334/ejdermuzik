@@ -48,11 +48,6 @@ func pingHandler(c *td.Client, m *td.Message) error {
 func startHandler(c *td.Client, m *td.Message) error {
 	chatID := m.ChatId
 
-	ctx, cancel := db.Ctx()
-	defer cancel()
-
-	_ = ctx
-
 	if m.IsPrivate() {
 		go func(chatID int64) {
 			_ = db.Instance.AddUser(chatID)

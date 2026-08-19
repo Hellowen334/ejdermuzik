@@ -368,7 +368,7 @@ func handleSingleTrack(c *td.Client, m *td.Message, updater *td.Message, song ut
 		escURLnp, escNamenp, utils.SecToMin(song.Duration), escUsernp,
 	)
 
-	_, err = updater.EditText(c, nowPlaying, &td.EditTextMessageOpts{
+	_, err := updater.EditText(c, nowPlaying, &td.EditTextMessageOpts{
 		ReplyMarkup:           core.ControlButtons("play"),
 		ParseMode:             "HTML",
 		DisableWebPagePreview: true,
