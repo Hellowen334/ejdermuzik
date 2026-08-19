@@ -138,28 +138,25 @@ func (y *youTubeData) getTrack() (utils.TrackInfo, error) {
 		return utils.TrackInfo{}, errors.New("the provided URL is invalid or the platform is not supported")
 	}
 
+	// Try free inner YouTube info first (Zero API cost)
+	getInfo, err := y.getInfo()
+	if err == nil && len(getInfo.Results) > 0 {
+		track := getInfo.Results[0]
+		return utils.TrackInfo{
+			Id:       track.Id,
+			URL:      track.Url,
+			Platform: utils.YouTube,
+		}, nil
+	}
+
+	// Fallback to API gateway if inner info fails
 	if y.ApiUrl != "" && y.APIKey != "" {
 		if trackInfo, err := newApiData(y.Query).getTrack(); err == nil {
 			return trackInfo, nil
 		}
 	}
 
-	getInfo, err := y.getInfo()
-	if err != nil {
-		return utils.TrackInfo{}, err
-	}
-	if len(getInfo.Results) == 0 {
-		return utils.TrackInfo{}, errors.New("no video results were found")
-	}
-
-	track := getInfo.Results[0]
-	trackInfo := utils.TrackInfo{
-		Id:       track.Id,
-		URL:      track.Url,
-		Platform: utils.YouTube,
-	}
-
-	return trackInfo, nil
+	return utils.TrackInfo{}, errors.New("no video results were found")
 }
 
 // downloadTrack handles the download of a track from YouTube.
@@ -168,13 +165,19 @@ func (y *youTubeData) downloadTrack(info utils.TrackInfo, video bool) (string, e
 		return info.CdnURL, nil
 	}
 
+	// Try local yt-dlp first (Free & zero API quota cost)
+	if filePath, err := y.downloadWithYtDlp(info.Id, video); err == nil {
+		return filePath, nil
+	}
+
+	// Fallback to external API gateway if local yt-dlp fails
 	if !video && y.ApiUrl != "" && y.APIKey != "" {
 		if filePath, err := y.downloadWithApi(info.Id, video); err == nil {
 			return filePath, nil
 		}
 	}
 
-	return y.downloadWithYtDlp(info.Id, video)
+	return "", errors.New("failed to download track via yt-dlp and api")
 }
 
 // buildYtdlpParams constructs the command-line parameters for yt-dlp to download media.
