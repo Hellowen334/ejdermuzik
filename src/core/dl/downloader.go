@@ -9,7 +9,6 @@
 package dl
 
 import (
-	"ashokshau/tgmusic/config"
 	"ashokshau/tgmusic/src/core/db"
 	"ashokshau/tgmusic/src/utils"
 	"context"
@@ -32,7 +31,7 @@ func DownloadCachedTrack(cached *utils.CachedTrack, bot *td.Client) (string, err
 	// Step 1: Check Telegram file_id cache in MongoDB
 	if cached.TrackID != "" && db.Instance != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		fileID, msgID, err := db.Instance.GetCachedFileID(ctx, cached.TrackID, cached.IsVideo)
+		fileID, _, err := db.Instance.GetCachedFileID(ctx, cached.TrackID, cached.IsVideo)
 		cancel()
 
 		if err == nil && fileID != "" {
